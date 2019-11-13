@@ -6,7 +6,7 @@ using System.Text;
 
 namespace BnBTechnologies.Xrm.MemoryServiceProvider
 {
-    class MemmoryExecutionContext : IExecutionContext
+    class MemoryExecutionContext : IExecutionContext
     {
         private ParameterCollection inputparameters = null;
         private EntityImageCollection preentityimages = null;
