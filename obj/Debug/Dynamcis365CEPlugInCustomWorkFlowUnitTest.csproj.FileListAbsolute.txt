@@ -14,7 +14,6 @@ C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\Microsoft.Xr
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\Microsoft.Xrm.Sdk.dll
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\Microsoft.Xrm.Sdk.Workflow.dll
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\Microsoft.Xrm.Tooling.Connector.dll
-C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\TourismPlugins.dll
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\Microsoft.Crm.Sdk.Proxy.xml
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\Microsoft.IdentityModel.Clients.ActiveDirectory.xml
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\Microsoft.VisualStudio.TestPlatform.TestFramework.xml

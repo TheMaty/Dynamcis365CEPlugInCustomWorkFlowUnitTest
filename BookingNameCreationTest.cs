@@ -84,14 +84,17 @@ namespace TourimPlugins___UnitTestProject
             preEntity.Attributes.Add("bnb_checkin", DateTime.Now);
             preEntity.Attributes.Add("bnb_checkout", DateTime.Now);
 
-            Entity postEntity = plgIn.Create(preEntity, "TourismPlugins.PostOperationbnb_bookingCreate");
+            EntityCollection postEntityColl = plgIn.Execute(preEntity, "TourismPlugins.PostOperationbnb_bookingCreate");
 
-            if (postEntity.Contains("bnb_name"))
-                Assert.AreEqual(getName(preEntity), postEntity.Attributes["bnb_name"]);
-            else
-                Assert.Fail("return entity does not contain bnb_name field");
+            foreach (Entity postEntity in postEntityColl.Entities)
+            {
+                if (postEntity.Contains("bnb_name"))
+                    Assert.AreEqual(getName(preEntity), postEntity.Attributes["bnb_name"]);
+                else
+                    Assert.Fail("return entity does not contain bnb_name field");
+            }
 
-          
+
         }
 
         private string getName(Entity entity)

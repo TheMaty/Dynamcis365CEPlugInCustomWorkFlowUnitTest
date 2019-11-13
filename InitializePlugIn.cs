@@ -38,7 +38,7 @@ namespace TourimPlugins___UnitTestProject
         /// </summary>
         /// <param name="entity"> Entity lick filling fields in CRM UI</param>
         /// <param name="stepName">Full Name of Step - you can get it from PlugIn Registration tool easily - Look at Event Handler section</param>
-        public Entity Create(Entity entity, string stepName)
+        public EntityCollection Execute(Entity entity, string stepName)
         {
             Assembly assembly = Assembly.LoadFrom("TourismPlugins.dll");
             Type type = assembly.GetType(stepName);
@@ -51,7 +51,7 @@ namespace TourimPlugins___UnitTestProject
                 {
                     object result = null;
                     ParameterInfo[] parameters = methodInfo.GetParameters();
-                    object classInstance = Activator.CreateInstance(type, new object[] { "","" } );
+                    object classInstance = Activator.CreateInstance(type, new object[] { "", "" });
 
                     MemoryServiceProvider serviceProvider = new BnBTechnologies.Xrm.MemoryServiceProvider.MemoryServiceProvider(entity);
 
@@ -62,7 +62,7 @@ namespace TourimPlugins___UnitTestProject
                     IOrganizationServiceFactory factory = (IOrganizationServiceFactory)serviceProvider.GetService(typeof(IOrganizationServiceFactory));
 
                     // Obtain the organization service reference which you will need for web service calls.  
-                    return ((OrganizationService)factory.CreateOrganizationService(null)).postEntity;
+                    return ((OrganizationService)factory.CreateOrganizationService(null)).postEntityColl;
                 }
             }
 

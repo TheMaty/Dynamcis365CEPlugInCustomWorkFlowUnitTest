@@ -92,7 +92,7 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
                 preentityimages = value;
             }
         }
-                        
+
 
         public EntityImageCollection PostEntityImages
         {
@@ -143,15 +143,31 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
 
     class OrganizationService : IOrganizationService
     {
-        public Entity postEntity;
+        public EntityCollection postEntityColl
+        {
+            get
+            {
+                if (_postentityCollection == null)
+                    _postentityCollection = new EntityCollection();
+
+                return _postentityCollection;
+            }
+            set
+            {
+                _postentityCollection = value;
+            }
+        }
+
+        private EntityCollection _postentityCollection;
         public void Associate(string entityName, Guid entityId, Relationship relationship, EntityReferenceCollection relatedEntities)
         {
         }
 
         public Guid Create(Entity entity)
         {
-            postEntity = entity;
-            return Guid.NewGuid();
+            entity.Id = Guid.NewGuid();
+            postEntityColl.Entities.Add(entity);
+            return entity.Id;
         }
 
         public void Delete(string entityName, Guid id)
@@ -176,28 +192,50 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
 
         public Entity Retrieve(string entityName, Guid id, ColumnSet columnSet)
         {
-            return new Entity();
+            Entity entity = new Entity(entityName);
+
+            foreach (string str in columnSet.Columns)
+            {
+                entity.Attributes.Add(str, "0"); // o ise valid for integer, boolean and string
+            }
+
+            return entity;
         }
 
         public EntityCollection RetrieveMultiple(QueryBase query)
         {
-            return new EntityCollection( new List<Entity>
+            EntityCollection returnCollection = new EntityCollection();
+
+            //supposing query returns 3 records for the entity
+            for (int i = 1; i <= 3; i++)
             {
-                new Entity(),
-                new Entity()
-            });
-              
+                Entity entity = new Entity(((QueryExpression)query).EntityName);
+                foreach (string str in ((QueryExpression)query).ColumnSet.Columns)
+                {
+                    if (str.EndsWith("id"))
+                    {
+                        EntityReference entityRef = new EntityReference(str.TrimEnd("id".ToCharArray()).TrimEnd("ID".ToCharArray()).TrimEnd("Id".ToCharArray()));
+                        entityRef.Id = Guid.NewGuid();
+                        entity.Attributes.Add(str, entityRef);
+                    }
+                    else
+                        entity.Attributes.Add(str, "0"); // 0 ise valid for integer, boolean and string
+                }
+                returnCollection.Entities.Add(entity);
+            }
+
+            return returnCollection;
         }
 
         public void Update(Entity entity)
         {
-            postEntity = entity;
+            postEntityColl.Entities.Add(entity);
         }
     }
 
     class OrganizationServiceFactory : IOrganizationServiceFactory
     {
-        private OrganizationService orgserv = null; 
+        private OrganizationService orgserv = null;
         public IOrganizationService CreateOrganizationService(Guid? userId)
         {
             if (orgserv == null)
@@ -277,7 +315,7 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
             {
                 if (preentityimages == null)
                 {
-                    preentityimages = new EntityImageCollection 
+                    preentityimages = new EntityImageCollection
                     {
                         new KeyValuePair<string, Entity> (
                                             "Target",
@@ -293,7 +331,8 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
             }
         }
 
-        public EntityImageCollection PostEntityImages {
+        public EntityImageCollection PostEntityImages
+        {
             get
             {
                 if (postentityimages == null)
@@ -351,9 +390,9 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
         {
             _serviceProviderLookup = new Dictionary<Type, object>();
 
-            _serviceProviderLookup.Add (typeof(IPluginExecutionContext), new MemoryPluginExecutionContext()
-                {
-                    InputParameters = new ParameterCollection {
+            _serviceProviderLookup.Add(typeof(IPluginExecutionContext), new MemoryPluginExecutionContext()
+            {
+                InputParameters = new ParameterCollection {
                                         new KeyValuePair<string, object>(
                                             "Target",
                                             entity
@@ -364,20 +403,20 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
                                         )
                                 },
 
-                    PreEntityImages = new EntityImageCollection {
+                PreEntityImages = new EntityImageCollection {
                                         new KeyValuePair<string, Entity> (
                                             "Target",
                                             entity
                                         )
                                 },
-                    
-                    PostEntityImages = new EntityImageCollection {
+
+                PostEntityImages = new EntityImageCollection {
                                         new KeyValuePair<string, Entity> (
                                             "Target",
                                             entity
                                         )
                                 }
-                });
+            });
             _serviceProviderLookup.Add(typeof(ITracingService), new TracingSrvice());
             _serviceProviderLookup.Add(typeof(IServiceEndpointNotificationService), new ServiceEndpointNotificationService());
             _serviceProviderLookup.Add(typeof(IOrganizationServiceFactory), new OrganizationServiceFactory());
