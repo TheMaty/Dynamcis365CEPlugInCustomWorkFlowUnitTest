@@ -1,4 +1,4 @@
-﻿using BnBTechnologies.Xrm.MemoryServiceProvider;
+﻿using BnBTechnologies.Xrm.MemoryService;
 using Microsoft.Xrm.Sdk;
 using System;
 using System.Collections.Generic;
@@ -8,9 +8,9 @@ using System.ServiceModel;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TourimPlugins___UnitTestProject
+namespace BnBTechnologies.Xrm
 {
-    class InitializePlugIn
+    class InitializePluginWorkflow
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PostOperationbnb_bookingCreate"/> class.
@@ -19,7 +19,7 @@ namespace TourimPlugins___UnitTestProject
         /// <param name="secure">Contains non-public (secured) configuration information. 
         /// When using Microsoft Dynamics 365 for Outlook with Offline Access, 
         /// the secure string is not passed to a plug-in that executes while the client is offline.</param>
-        public InitializePlugIn(string unsecure, string secure)
+        public InitializePluginWorkflow(string unsecure, string secure)
         {
 
             // TODO: Implement your custom configuration handling.
@@ -28,7 +28,7 @@ namespace TourimPlugins___UnitTestProject
         /// <summary>
         /// Default Constructor
         /// </summary>
-        public InitializePlugIn()
+        public InitializePluginWorkflow()
         {
 
             // TODO: Implement your custom configuration handling.
@@ -38,7 +38,7 @@ namespace TourimPlugins___UnitTestProject
         /// </summary>
         /// <param name="entity"> Entity lick filling fields in CRM UI</param>
         /// <param name="stepName">Full Name of Step - you can get it from PlugIn Registration tool easily - Look at Event Handler section</param>
-        public EntityCollection Execute(Entity entity, string stepName)
+        public EntityCollection Execute(Entity entity, string stepName, EntityImageCollection preImage = null, EntityImageCollection postImage = null)
         {
             Assembly assembly = Assembly.LoadFrom("TourismPlugins.dll");
             Type type = assembly.GetType(stepName);
@@ -53,7 +53,15 @@ namespace TourimPlugins___UnitTestProject
                     ParameterInfo[] parameters = methodInfo.GetParameters();
                     object classInstance = Activator.CreateInstance(type, new object[] { "", "" });
 
-                    MemoryServiceProvider serviceProvider = new BnBTechnologies.Xrm.MemoryServiceProvider.MemoryServiceProvider(entity);
+                    BnBTechnologies.Xrm.MemoryService.Provider serviceProvider = new BnBTechnologies.Xrm.MemoryService.Provider(entity);
+
+                    MemoryPluginExecutionContext executionContext = (MemoryPluginExecutionContext)serviceProvider.GetService(typeof(IPluginExecutionContext));
+
+                    if (preImage != null)
+                        executionContext.PreEntityImages = preImage;
+
+                    if (postImage != null)
+                        executionContext.PostEntityImages = postImage;
 
                     object[] parametersArray = new object[] { serviceProvider };
                     result = methodInfo.Invoke(classInstance, parametersArray);

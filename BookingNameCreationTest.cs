@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Reflection;
 using Microsoft.Xrm.Sdk;
+using BnBTechnologies.Xrm;
 
 namespace TourimPlugins___UnitTestProject
 {
@@ -63,7 +64,7 @@ namespace TourimPlugins___UnitTestProject
         [TestMethod]
         public void BookingName()
         {
-            InitializePlugIn plgIn = new InitializePlugIn("", "");
+            InitializePluginWorkflow plgIn = new InitializePluginWorkflow("", "");
 
             Entity preEntity = new Entity("bnb_booking");
 

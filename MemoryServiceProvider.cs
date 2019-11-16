@@ -4,11 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BnBTechnologies.Xrm.MemoryServiceProvider
+namespace BnBTechnologies.Xrm.MemoryService
 {
     class MemoryExecutionContext : IExecutionContext
     {
         private ParameterCollection inputparameters = null;
+        private ParameterCollection outputparameters = null;
         private EntityImageCollection preentityimages = null;
         private EntityImageCollection postentityimages = null;
 
@@ -26,7 +27,7 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
             {
                 if (inputparameters == null)
                 {
-                    new ParameterCollection
+                    inputparameters = new ParameterCollection
                     {
                         new KeyValuePair<string, object>(
                             "Target",
@@ -67,7 +68,48 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
 
         public string OrganizationName => "Mock Organiation";
 
-        public ParameterCollection OutputParameters => throw new NotImplementedException();
+        public ParameterCollection OutputParameters
+        {
+            get
+            {
+                if (outputparameters == null)
+                {
+                    outputparameters = new ParameterCollection
+                    {
+                        new KeyValuePair<string, object>(
+                            "Target",
+                            new Microsoft.Xrm.Sdk.Entity()
+                        ),
+                        new KeyValuePair<string, object>(
+                            "ConcurrencyBehavior",
+                            Microsoft.Xrm.Sdk.ConcurrencyBehavior.Default
+                        ),
+                        new KeyValuePair<string, object>(
+                            "id",
+                            Guid.NewGuid()
+                        ),
+                        new KeyValuePair<string, object>(
+                            "ownerid",
+                            Guid.NewGuid()
+                        ),
+                        new KeyValuePair<string, object>(
+                            "businessunitid",
+                            Guid.NewGuid()
+                        ),
+                        new KeyValuePair<string, object>(
+                            "orgaizationid",
+                            Guid.NewGuid()
+                        )
+                    };
+                }
+
+                return outputparameters;
+            }
+            set
+            {
+                outputparameters = value;
+            }
+        }
 
         public EntityReference OwningExtension => new EntityReference();
 
@@ -166,12 +208,27 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
         public Guid Create(Entity entity)
         {
             entity.Id = Guid.NewGuid();
+            if (entity.Attributes.Contains(entity.LogicalName + "id"))
+                entity.Attributes[entity.LogicalName + "id"] = entity.Id;
+            else
+                entity.Attributes.Add(entity.LogicalName + "id", entity.Id);
             postEntityColl.Entities.Add(entity);
             return entity.Id;
         }
 
         public void Delete(string entityName, Guid id)
         {
+            Entity foundEntity = new Entity();
+            foreach (Entity entity in _postentityCollection.Entities)
+            {
+                if (entity.Id != null && entity.Id == id)
+                {
+                    foundEntity = entity;
+                    break;
+                }
+            }
+
+            _postentityCollection.Entities.Remove(foundEntity);
         }
 
         public void Disassociate(string entityName, Guid entityId, Relationship relationship, EntityReferenceCollection relatedEntities)
@@ -196,9 +253,26 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
 
             foreach (string str in columnSet.Columns)
             {
-                entity.Attributes.Add(str, "0"); // o ise valid for integer, boolean and string
+                if (str.EndsWith("id"))
+                {
+                    //special case : if id is primarkey, we can not create Entity Refereance so if the attributes is EntityNameid create only guid so
+                    if (str.Contains(entity.LogicalName))
+                    {
+                        entity.Id = Guid.NewGuid();
+                        entity.Attributes.Add(str, entity.Id);
+                    }
+                    else
+                    {
+                        EntityReference entityRef = new EntityReference(str.TrimEnd("id".ToCharArray()).TrimEnd("ID".ToCharArray()).TrimEnd("Id".ToCharArray()));
+                        entityRef.Id = Guid.NewGuid();
+                        entity.Attributes.Add(str, entityRef);
+                        entity.Id = entityRef.Id;
+                    }
+                }
+                else
+                    entity.Attributes.Add(str, "0"); // o ise valid for integer, boolean and string
             }
-
+            postEntityColl.Entities.Add(entity);
             return entity;
         }
 
@@ -214,22 +288,44 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
                 {
                     if (str.EndsWith("id"))
                     {
-                        EntityReference entityRef = new EntityReference(str.TrimEnd("id".ToCharArray()).TrimEnd("ID".ToCharArray()).TrimEnd("Id".ToCharArray()));
-                        entityRef.Id = Guid.NewGuid();
-                        entity.Attributes.Add(str, entityRef);
+                        //special case : if id is primarkey, we can not create Entity Refereance so if the attributes is EntityNameid create only guid so
+                        if (str.Contains(entity.LogicalName))
+                        {
+                            entity.Id = Guid.NewGuid();
+                            entity.Attributes.Add(str, entity.Id);
+                        }
+                        else
+                        {
+                            EntityReference entityRef = new EntityReference(str.TrimEnd("id".ToCharArray()).TrimEnd("ID".ToCharArray()).TrimEnd("Id".ToCharArray()));
+                            entityRef.Id = Guid.NewGuid();
+                            entity.Attributes.Add(str, entityRef);
+                            entity.Id = entityRef.Id;
+                        }
                     }
                     else
                         entity.Attributes.Add(str, "0"); // 0 ise valid for integer, boolean and string
                 }
                 returnCollection.Entities.Add(entity);
+                postEntityColl.Entities.Add(entity);
             }
 
             return returnCollection;
         }
 
-        public void Update(Entity entity)
+        public void Update(Entity entityParam)
         {
-            postEntityColl.Entities.Add(entity);
+            Entity foundEntity = new Entity();
+            foreach (Entity entity in postEntityColl.Entities)
+            {
+                if (entity.Id != null && entity.Id == entityParam.Id)
+                {
+                    foundEntity = entity;
+                    break;
+                }
+            }
+
+            postEntityColl.Entities.Remove(foundEntity);
+            postEntityColl.Entities.Add(entityParam);
         }
     }
 
@@ -247,6 +343,7 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
     class MemoryPluginExecutionContext : IPluginExecutionContext
     {
         private ParameterCollection inputparameters = null;
+        private ParameterCollection outputparameters = null;
         private EntityImageCollection preentityimages = null;
         private EntityImageCollection postentityimages = null;
 
@@ -305,7 +402,48 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
 
         public string OrganizationName => "Mock Organiation";
 
-        public ParameterCollection OutputParameters => throw new NotImplementedException();
+        public ParameterCollection OutputParameters
+        {
+            get
+            {
+                if (outputparameters == null)
+                {
+                    outputparameters = new ParameterCollection
+                    {
+                        new KeyValuePair<string, object>(
+                            "Target",
+                            new Microsoft.Xrm.Sdk.Entity()
+                        ),
+                        new KeyValuePair<string, object>(
+                            "ConcurrencyBehavior",
+                            Microsoft.Xrm.Sdk.ConcurrencyBehavior.Default
+                        ),
+                        new KeyValuePair<string, object>(
+                            "id",
+                            Guid.NewGuid()
+                        ),
+                        new KeyValuePair<string, object>(
+                            "ownerid",
+                            Guid.NewGuid()
+                        ),
+                        new KeyValuePair<string, object>(
+                            "businessunitid",
+                            Guid.NewGuid()
+                        ),
+                        new KeyValuePair<string, object>(
+                            "orgaizationid",
+                            Guid.NewGuid()
+                        )
+                    };
+                }
+
+                return outputparameters;
+            }
+            set
+            {
+                outputparameters = value;
+            }
+        }
 
         public EntityReference OwningExtension => new EntityReference();
 
@@ -381,12 +519,12 @@ namespace BnBTechnologies.Xrm.MemoryServiceProvider
         {
         }
     }
-    public class MemoryServiceProvider : IServiceProvider
+    public class Provider : IServiceProvider
     {
 
         private System.Collections.Generic.Dictionary<System.Type, object> _serviceProviderLookup;
 
-        public MemoryServiceProvider(Entity entity)
+        public Provider(Entity entity)
         {
             _serviceProviderLookup = new Dictionary<Type, object>();
 
