@@ -22,8 +22,7 @@ C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\Microsoft.Xr
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\Microsoft.Xrm.Sdk.Deployment.xml
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\Microsoft.Xrm.Sdk.Workflow.xml
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\Microsoft.Xrm.Tooling.Connector.xml
-C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\bin\Debug\TourismPlugins.pdb
-C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\obj\Debug\Dynamcis365CEPlugInCustomWorkFlowUnitTest.csprojAssemblyReference.cache
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\obj\Debug\Dynamcis365CEPlugInCustomWorkFlowUnitTest.csproj.CopyComplete
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\obj\Debug\Dynamcis365CEPlugInCustomWorkFlowUnitTest.dll
 C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\obj\Debug\Dynamcis365CEPlugInCustomWorkFlowUnitTest.pdb
+C:\source\repos\Dynamcis365CEPlugInCustomWorkFlowUnitTest\obj\Debug\Dynamcis365CEPlugInCustomWorkFlowUnitTest.csprojAssemblyReference.cache

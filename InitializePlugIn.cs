@@ -33,12 +33,19 @@ namespace BnBTechnologies.Xrm
 
             // TODO: Implement your custom configuration handling.
         }
+
+        private System.Collections.Generic.List<Entity> memoryDatabaseData;
+
         /// <summary>
         /// triggerred event as if Dynamics CRM
         /// </summary>
         /// <param name="entity"> Entity lick filling fields in CRM UI</param>
         /// <param name="stepName">Full Name of Step - you can get it from PlugIn Registration tool easily - Look at Event Handler section</param>
-        public EntityCollection Execute(Entity entity, string stepName, EntityImageCollection preImage = null, EntityImageCollection postImage = null)
+        /// <param name="preImage"> Entity shot before database operation </param>
+        /// <param name="postImage"> Entity shot after database operation </param>
+        /// <param name="inputParameters"> The parameters of the request message that triggered the event that caused the plug-in to execute. We send Entity</param>
+        /// <param name="outputParameters">The parameters of the response message after the core platform operation has completed. It is entity for us</param>
+        public EntityCollection Execute(Entity entity, string stepName, EntityImageCollection preImage = null, EntityImageCollection postImage = null, ParameterCollection inputParameters = null, ParameterCollection outputParameters = null)
         {
             Assembly assembly = Assembly.LoadFrom("TourismPlugins.dll");
             Type type = assembly.GetType(stepName);
@@ -63,18 +70,42 @@ namespace BnBTechnologies.Xrm
                     if (postImage != null)
                         executionContext.PostEntityImages = postImage;
 
-                    object[] parametersArray = new object[] { serviceProvider };
-                    result = methodInfo.Invoke(classInstance, parametersArray);
+                    if (inputParameters != null)
+                        executionContext.InputParameters = inputParameters;
+
+                    if (outputParameters != null)
+                        executionContext.OutputParameters = outputParameters;
 
                     // Obtain the organization factory service from the service provider.
                     IOrganizationServiceFactory factory = (IOrganizationServiceFactory)serviceProvider.GetService(typeof(IOrganizationServiceFactory));
 
+                    //load initial data
+                    ((OrganizationService)factory.CreateOrganizationService(null)).MockMemoryDatabase = memoryDatabaseData;
+
+
+                    object[] parametersArray = new object[] { serviceProvider };
+                    result = methodInfo.Invoke(classInstance, parametersArray);
+
+
                     // Obtain the organization service reference which you will need for web service calls.  
-                    return ((OrganizationService)factory.CreateOrganizationService(null)).postEntityColl;
+                    return new EntityCollection(((OrganizationService)factory.CreateOrganizationService(null)).MockMemoryDatabase);
                 }
             }
 
             return null;
+        }
+
+        public void LoadSampleDataToMemory(EntityCollection collection)
+        {
+            if (memoryDatabaseData == null)
+            {
+                memoryDatabaseData = new List<Entity>();
+            }
+
+            foreach (Entity entity in collection.Entities)
+            {
+                memoryDatabaseData.Add(entity);
+            }
         }
     }
 

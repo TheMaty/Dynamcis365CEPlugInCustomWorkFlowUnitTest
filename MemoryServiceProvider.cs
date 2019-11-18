@@ -185,22 +185,22 @@ namespace BnBTechnologies.Xrm.MemoryService
 
     class OrganizationService : IOrganizationService
     {
-        public EntityCollection postEntityColl
+        public List<Entity> MockMemoryDatabase
         {
             get
             {
-                if (_postentityCollection == null)
-                    _postentityCollection = new EntityCollection();
+                if (mockMemoryDatabase == null)
+                    mockMemoryDatabase = new List<Entity>();
 
-                return _postentityCollection;
+                return mockMemoryDatabase;
             }
             set
             {
-                _postentityCollection = value;
+                mockMemoryDatabase = value;
             }
         }
 
-        private EntityCollection _postentityCollection;
+        private List<Entity> mockMemoryDatabase;
         public void Associate(string entityName, Guid entityId, Relationship relationship, EntityReferenceCollection relatedEntities)
         {
         }
@@ -212,23 +212,13 @@ namespace BnBTechnologies.Xrm.MemoryService
                 entity.Attributes[entity.LogicalName + "id"] = entity.Id;
             else
                 entity.Attributes.Add(entity.LogicalName + "id", entity.Id);
-            postEntityColl.Entities.Add(entity);
+            MockMemoryDatabase.Add(entity);
             return entity.Id;
         }
 
         public void Delete(string entityName, Guid id)
         {
-            Entity foundEntity = new Entity();
-            foreach (Entity entity in _postentityCollection.Entities)
-            {
-                if (entity.Id != null && entity.Id == id)
-                {
-                    foundEntity = entity;
-                    break;
-                }
-            }
-
-            _postentityCollection.Entities.Remove(foundEntity);
+            MockMemoryDatabase.RemoveAll(x => x.Id == id);
         }
 
         public void Disassociate(string entityName, Guid entityId, Relationship relationship, EntityReferenceCollection relatedEntities)
@@ -249,6 +239,11 @@ namespace BnBTechnologies.Xrm.MemoryService
 
         public Entity Retrieve(string entityName, Guid id, ColumnSet columnSet)
         {
+            //first check if the record exists in Mock Memory Database 
+            if (MockMemoryDatabase.Exists(x => x.LogicalName == entityName && x.Id == id))
+                return MockMemoryDatabase.Find(x => x.LogicalName == entityName && x.Id == id);
+
+            //new so add it to the Memory Database and return
             Entity entity = new Entity(entityName);
 
             foreach (string str in columnSet.Columns)
@@ -272,60 +267,126 @@ namespace BnBTechnologies.Xrm.MemoryService
                 else
                     entity.Attributes.Add(str, "0"); // o ise valid for integer, boolean and string
             }
-            postEntityColl.Entities.Add(entity);
+            MockMemoryDatabase.Add(entity);
             return entity;
         }
 
-        public EntityCollection RetrieveMultiple(QueryBase query)
+        private bool ValidateRecord(DataCollection<FilterExpression> filters, Entity record)
         {
-            EntityCollection returnCollection = new EntityCollection();
-
-            //supposing query returns 3 records for the entity
-            for (int i = 1; i <= 3; i++)
+            bool isValid = true;
+            foreach (FilterExpression exp in filters)
             {
-                Entity entity = new Entity(((QueryExpression)query).EntityName);
-                foreach (string str in ((QueryExpression)query).ColumnSet.Columns)
+                if (exp.Filters != null && exp.Filters.Count > 0)
                 {
-                    if (str.EndsWith("id"))
+                    isValid = isValid && ValidateRecord(exp.Filters, record);
+                }
+
+                foreach (ConditionExpression cond in exp.Conditions)
+                {
+                    if (record.Attributes.Contains(cond.AttributeName))
                     {
-                        //special case : if id is primarkey, we can not create Entity Refereance so if the attributes is EntityNameid create only guid so
-                        if (str.Contains(entity.LogicalName))
+                        foreach (object obj in cond.Values)
                         {
-                            entity.Id = Guid.NewGuid();
-                            entity.Attributes.Add(str, entity.Id);
-                        }
-                        else
-                        {
-                            EntityReference entityRef = new EntityReference(str.TrimEnd("id".ToCharArray()).TrimEnd("ID".ToCharArray()).TrimEnd("Id".ToCharArray()));
-                            entityRef.Id = Guid.NewGuid();
-                            entity.Attributes.Add(str, entityRef);
-                            entity.Id = entityRef.Id;
+                            if (record.Attributes[cond.AttributeName].ToString() == obj.ToString())
+                                return true;
+                            else
+                                return false;
                         }
                     }
-                    else
-                        entity.Attributes.Add(str, "0"); // 0 ise valid for integer, boolean and string
                 }
-                returnCollection.Entities.Add(entity);
-                postEntityColl.Entities.Add(entity);
             }
+            return isValid;
+        }
 
+        private EntityCollection ExecuteQueryAgainstMemory(QueryBase queryBase)
+        {
+            EntityCollection entityCollection = new EntityCollection();
+            QueryExpression query = (QueryExpression)queryBase;
+
+            entityCollection.EntityName = query.EntityName;
+
+            //hit to the query for validation
+            foreach (Entity entity in MockMemoryDatabase)
+            {
+                if (entity.LogicalName != entityCollection.EntityName)
+                    continue;
+
+                bool isValidated = ValidateRecord(query.Criteria.Filters, entity);
+
+                //check main conditions on the critaria, not under filters
+                foreach (ConditionExpression cond in query.Criteria.Conditions)
+                {
+                    if (entity.Attributes.Contains(cond.AttributeName))
+                    {
+                        foreach (object obj in cond.Values)
+                        {
+                            if (entity.Attributes[cond.AttributeName].GetType() == typeof(EntityReference))
+                            {
+                                if (((EntityReference)entity.Attributes[cond.AttributeName]).Id.ToString() == obj.ToString())
+                                    isValidated = isValidated && true;
+                                else
+                                    isValidated = isValidated && false;
+                            }
+                            else
+                            {
+                                if (entity.Attributes[cond.AttributeName].ToString() == obj.ToString())
+                                    isValidated = isValidated && true;
+                                else
+                                    isValidated = isValidated && false;
+                            }
+                        }
+                    }
+                }
+                if (isValidated)
+                    entityCollection.Entities.Add(entity);
+            }
+            return entityCollection;
+        }
+        public EntityCollection RetrieveMultiple(QueryBase query)
+        {
+            EntityCollection returnCollection = ExecuteQueryAgainstMemory(query);
+
+            if (returnCollection == null || returnCollection.Entities.Count <= 0)
+            {
+
+                //supposing query returns 3 records for the entity
+                for (int i = 1; i <= 3; i++)
+                {
+                    Entity entity = new Entity(((QueryExpression)query).EntityName);
+                    foreach (string str in ((QueryExpression)query).ColumnSet.Columns)
+                    {
+                        if (str.EndsWith("id"))
+                        {
+                            //special case : if id is primarkey, we can not create Entity Refereance so if the attributes is EntityNameid create only guid so
+                            if (str.Contains(entity.LogicalName))
+                            {
+                                entity.Id = Guid.NewGuid();
+                                entity.Attributes.Add(str, entity.Id);
+                            }
+                            else
+                            {
+                                EntityReference entityRef = new EntityReference(str.TrimEnd("id".ToCharArray()).TrimEnd("ID".ToCharArray()).TrimEnd("Id".ToCharArray()));
+                                entityRef.Id = Guid.NewGuid();
+                                entity.Attributes.Add(str, entityRef);
+                                entity.Id = entityRef.Id;
+                            }
+                        }
+                        else
+                            entity.Attributes.Add(str, "0"); // 0 ise valid for integer, boolean and string
+                    }
+                    returnCollection.Entities.Add(entity);
+                    mockMemoryDatabase.Add(entity);
+                }
+            }
             return returnCollection;
         }
 
         public void Update(Entity entityParam)
         {
-            Entity foundEntity = new Entity();
-            foreach (Entity entity in postEntityColl.Entities)
-            {
-                if (entity.Id != null && entity.Id == entityParam.Id)
-                {
-                    foundEntity = entity;
-                    break;
-                }
-            }
-
-            postEntityColl.Entities.Remove(foundEntity);
-            postEntityColl.Entities.Add(entityParam);
+            //first check if the record exists in Mock Memory Database 
+            if (MockMemoryDatabase.Exists(x => x.LogicalName == entityParam.LogicalName && x.Id == entityParam.Id))
+                MockMemoryDatabase.Remove(MockMemoryDatabase.Find(x => x.LogicalName == entityParam.LogicalName && x.Id == entityParam.Id));
+            mockMemoryDatabase.Add(entityParam);
         }
     }
 
