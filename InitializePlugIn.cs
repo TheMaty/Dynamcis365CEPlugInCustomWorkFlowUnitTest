@@ -57,7 +57,7 @@ namespace BnBTechnologies.Xrm
                 if (methodInfo != null)
                 {
                     object result = null;
-                    ParameterInfo[] parameters = methodInfo.GetParameters();
+                    
                     object classInstance = Activator.CreateInstance(type, new object[] { "", "" });
 
                     BnBTechnologies.Xrm.MemoryService.Provider serviceProvider = new BnBTechnologies.Xrm.MemoryService.Provider(entity);
